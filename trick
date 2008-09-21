@@ -78,7 +78,7 @@ else
 	encrypted_flag="c"
 fi
 
-trick_file_name="${image_name}-${image_size}-${encrypted_flag}.${image_extension}"
+trick_file_name="$(basename "$arg_file")-${image_size}-${encrypted_flag}.${image_extension}"
 
 cmd=
 
@@ -111,3 +111,5 @@ else
 		exit $EXIT_FAILURE
 	fi
 fi
+
+exit $EXIT_SUCCESS
