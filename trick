@@ -72,7 +72,13 @@ image_name="$(fun_get_file_name "$arg_image")"
 image_size="$(fun_get_image_size "$arg_image")"
 image_extension="$(fun_get_file_extension "$arg_image")"
 
-trick_file_name="${image_name}-${image_size}.${image_extension}"
+if [[ $ENABLE_CRYPTO="yes" ]] ; then
+	encrypted_flag="e"
+else
+	encrypted_flag="c"
+fi
+
+trick_file_name="${image_name}-${image_size}-${encrypted_flag}.${image_extension}"
 
 cmd=
 
@@ -96,10 +102,12 @@ fi
 # Then append the file to hide.
 if [[ $ENABLE_CRYPTO = "yes" ]] ; then
 	if ! $ENCRYPT_CMD $ENCRYPT_OPTIONS "$arg_file" >> "$trick_file_name" ; then
+		rm $trick_file_name
 		exit $EXIT_FAILURE
 	fi
 else
 	if ! cat "$arg_file" >> "$trick_file_name" ; then
+		rm $trick_file_name
 		exit $EXIT_FAILURE
 	fi
 fi
