@@ -1,0 +1,121 @@
+#!/usr/bin/env bash
+
+
+###########################################################################
+# CONSTANTS
+###########################################################################
+
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
+DEBUG="yes"
+
+
+###########################################################################
+# SOURCED FILES
+###########################################################################
+
+. oosah-trick.conf
+
+
+###########################################################################
+# FUNCTIONS
+###########################################################################
+
+function fun_print_usage {
+	echo "usage: $0 FILE IMAGE"
+	echo ""
+	echo "this will embed FILE in IMAGE, so you can upload it to oosah"
+	echo "and other media-only hostings."
+}
+
+
+function fun_can_read_file {
+	if [[ -r $1 ]] ; then
+		true ; return
+	fi
+
+	false ; return
+}
+
+
+function fun_can_write_file {
+	if [[ -e $1 ]] ; then
+		echo "Error: file $1 exists"
+		false ; return
+	fi
+
+	if ! touch $1 2>&1 > /dev/null ; then
+		echo "Error: cannot create file $1"
+		false ; return
+	fi
+
+	rm $1
+	true ; return
+}
+
+
+function fun_args_are_fine {
+	if [[ $# != 2 ]] ; then
+		echo "Error: wrong number of arguments"
+		false ; return
+	fi
+
+	for i in $@ ; do
+		if [[ ! -f $i || ! -r $i ]] ; then
+			echo "Error: cannot read file $i"
+			false ; return
+		fi
+	done
+
+	true ; return
+}
+
+
+function fun_get_file_extension {
+	echo "${1##*.}"
+}
+
+
+function fun_get_file_name {
+	echo "${1%.*}"
+}
+
+
+function fun_get_image_size {
+	echo "$(stat -c %s $1)"
+}
+
+
+###########################################################################
+# VARIABLES
+###########################################################################
+
+arg_file="$1"
+arg_image="$2"
+
+image_name="$(fun_get_file_name $arg_image)"
+image_size="$(fun_get_image_size $arg_image)"
+image_extension="$(fun_get_file_extension $arg_image)"
+
+cat_first_file="$arg_image"
+cmd=
+
+
+###########################################################################
+# SCRIPT
+###########################################################################
+
+if ! fun_args_are_fine $@ ; then
+	fun_print_usage
+	exit $EXIT_FAILURE
+fi
+
+if [[ $ENABLE_CRYPTO = "yes" ]] ; then
+	cmd="$ENCRYPT_CMD $ENCRYPT_OPTIONS $arg_file | "
+	cat_first_file="-"
+fi
+
+cmd="${cmd}cat $cat_first_file $arg_file >> ${image_name}-${image_size}.${image_extension}"
+if [[ -n $DEBUG ]] ; then 
+	echo $cmd
+fi
