@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+
+
+###########################################################################
+# CONSTANTS
+###########################################################################
+
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
+DEBUG="yes"
+
+
+###########################################################################
+# SOURCED FILES
+###########################################################################
+
+. oosah-trick.conf
+
+
+###########################################################################
+# FUNCTIONS
+###########################################################################
+
+function fun_print_usage {
+	echo "usage: $0 FILE [...]"
+	echo ""
+	echo "each FILE must have been previously created by trick"
+}
+
+
+function fun_args_are_fine {
+	good_args_count=$(
+		for i in "$@" ; do
+			echo $i
+		done | grep -c '.\{1,\}-[1-9][0-9]\{1,\}-[ec]\..\{1,\}'
+	)
+
+	if [[ $good_args_count != $# ]] ; then
+		false ; return
+	fi
+
+	true ; return
+}
+
+
+###########################################################################
+# SCRIPT
+###########################################################################
+
+if ! fun_args_are_fine "$@" ; then
+	fun_print_usage
+	exit $EXIT_FAILURE
+fi
+
+
+while [[ -n "$1" ]] ; do
+
+	cmd="dd if=\"$1\" bs=1"
+
+	# strip extension from file name
+	filename="${1%.*}"
+
+	# get encrypted_flag: 'e' (encrypted) or 'c' (clear)
+	encrypted_flag="${filename##*-}"
+
+	# strip encrypted_flag from filename
+	filename="${filename%-*}"
+
+	# get image size
+	skip_bytes="${filename##*-}"
+
+	# strip image size from filename
+	filename="${filename%-*}"
+
+	cmd="$cmd skip=$skip_bytes"
+
+	if [[ $encrypted_flag = "c" ]] ; then
+		cmd="$cmd of=\"$filename\""
+	else
+		cmd="$cmd 2> /dev/null | gpg --output \"$filename\" --decrypt"
+	fi
+
+	eval $cmd
+
+	shift
+done
